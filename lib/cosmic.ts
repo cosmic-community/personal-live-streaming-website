@@ -33,8 +33,8 @@ export async function getCurrentStream(): Promise<Stream | null> {
       return liveStream;
     }
     
-    // Return the most recent stream if no live stream
-    return streams.length > 0 ? (streams[0] ?? null) : null;
+    // Return the most recent stream if no live stream - FIXED: return null instead of undefined
+    return streams.length > 0 ? streams[0] || null : null;
   } catch (error) {
     console.warn('Error fetching current stream:', error);
     if (hasStatus(error) && error.status === 404) {
@@ -57,7 +57,8 @@ export async function findStreamByPlaybackId(playbackId: string): Promise<Stream
     }).props(['id', 'title', 'slug', 'metadata']).depth(1);
 
     const streams = response.objects as Stream[];
-    return streams.length > 0 ? streams[0] : null;
+    // FIXED: return null instead of undefined
+    return streams.length > 0 ? streams[0] || null : null;
   } catch (error) {
     console.warn(`Error finding stream by playback ID ${playbackId}:`, error);
     if (hasStatus(error) && error.status === 404) {
@@ -80,7 +81,8 @@ export async function findStreamByMuxId(muxStreamId: string): Promise<Stream | n
     }).props(['id', 'title', 'slug', 'metadata']).depth(1);
 
     const streams = response.objects as Stream[];
-    return streams.length > 0 ? streams[0] : null;
+    // FIXED: return null instead of undefined  
+    return streams.length > 0 ? streams[0] || null : null;
   } catch (error) {
     console.warn(`Error finding stream by Mux ID ${muxStreamId}:`, error);
     if (hasStatus(error) && error.status === 404) {

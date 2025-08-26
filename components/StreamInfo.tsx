@@ -1,91 +1,141 @@
-import type { Stream } from '@/types'
+import { Stream } from '@/types'
 
 interface StreamInfoProps {
   stream: Stream
 }
 
 export default function StreamInfo({ stream }: StreamInfoProps) {
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit'
-    })
-  }
+  const streamDate = stream.metadata?.scheduled_date ? 
+    new Date(stream.metadata.scheduled_date) : 
+    new Date(stream.created_at)
 
+  const isLive = stream.metadata?.status === 'live'
+  const isScheduled = stream.metadata?.status === 'scheduled'
+  
   return (
-    <div className="stream-info-card">
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-        <div className="flex-1">
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">
-            {stream.title}
-          </h2>
-          
-          {stream.metadata?.description && (
-            <p className="text-gray-600 mb-4 leading-relaxed">
-              {stream.metadata.description}
-            </p>
-          )}
-          
-          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-            {stream.metadata?.scheduled_date && (
-              <div className="flex items-center gap-1">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span>{formatDate(stream.metadata.scheduled_date)}</span>
-              </div>
-            )}
-            
-            {stream.metadata?.duration && (
-              <div className="flex items-center gap-1">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>{stream.metadata.duration} minutes</span>
-              </div>
-            )}
-            
-            {stream.metadata?.category && (
-              <div className="flex items-center gap-1">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                </svg>
-                <span className="capitalize">{stream.metadata.category}</span>
-              </div>
-            )}
-          </div>
-        </div>
+    <div className="space-y-6">
+      {/* Stream Status Card */}
+      <div className="bg-white rounded-lg shadow-sm p-6 border">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Stream Info</h3>
         
-        {stream.metadata?.thumbnail && (
-          <div className="lg:w-48 flex-shrink-0">
+        <div className="space-y-4">
+          {/* Status */}
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">Status</span>
+            <div className="flex items-center">
+              <div className={`w-2 h-2 rounded-full mr-2 ${
+                isLive ? 'bg-red-500' : 
+                isScheduled ? 'bg-yellow-500' : 
+                'bg-gray-400'
+              }`} />
+              <span className={`font-medium ${
+                isLive ? 'text-red-600' : 
+                isScheduled ? 'text-yellow-600' : 
+                'text-gray-600'
+              }`}>
+                {stream.metadata?.status ? 
+                  stream.metadata.status.charAt(0).toUpperCase() + stream.metadata.status.slice(1) : 
+                  'Offline'
+                }
+              </span>
+            </div>
+          </div>
+
+          {/* Category */}
+          {stream.metadata?.category && (
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Category</span>
+              <span className="px-3 py-1 bg-gray-100 rounded-full text-sm font-medium text-gray-700">
+                {stream.metadata.category}
+              </span>
+            </div>
+          )}
+
+          {/* Date */}
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">
+              {isScheduled ? 'Scheduled' : 'Date'}
+            </span>
+            <span className="text-gray-900 font-medium">
+              {streamDate.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric',
+                year: 'numeric'
+              })}
+            </span>
+          </div>
+
+          {/* Time */}
+          {stream.metadata?.scheduled_date && (
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Time</span>
+              <span className="text-gray-900 font-medium">
+                {streamDate.toLocaleTimeString('en-US', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  timeZoneName: 'short'
+                })}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Stream Thumbnail */}
+      {stream.metadata?.thumbnail?.imgix_url && (
+        <div className="bg-white rounded-lg shadow-sm p-6 border">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Preview</h3>
+          <div className="aspect-video rounded-lg overflow-hidden">
             <img
-              src={`${stream.metadata.thumbnail.imgix_url}?w=192&h=108&fit=crop&auto=format,compress`}
+              src={`${stream.metadata.thumbnail.imgix_url}?w=400&h=300&fit=crop&auto=format,compress`}
               alt={stream.title}
-              width="192"
-              height="108"
-              className="w-full rounded-lg shadow-sm"
+              className="w-full h-full object-cover"
             />
           </div>
-        )}
-      </div>
-      
+        </div>
+      )}
+
+      {/* Tags */}
       {stream.metadata?.tags && stream.metadata.tags.length > 0 && (
-        <div className="mt-6 pt-6 border-t border-gray-200">
+        <div className="bg-white rounded-lg shadow-sm p-6 border">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Tags</h3>
           <div className="flex flex-wrap gap-2">
             {stream.metadata.tags.map((tag, index) => (
               <span
                 key={index}
-                className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
+                className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
               >
-                #{tag}
+                {tag}
               </span>
             ))}
           </div>
         </div>
       )}
+
+      {/* Additional Info */}
+      <div className="bg-gray-50 rounded-lg p-6 border">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">About</h3>
+        <div className="space-y-3 text-sm text-gray-600">
+          <div className="flex items-center">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            HD Quality Stream
+          </div>
+          <div className="flex items-center">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            Mobile Friendly
+          </div>
+          <div className="flex items-center">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            Interactive Chat
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

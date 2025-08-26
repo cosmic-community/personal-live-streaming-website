@@ -1,83 +1,106 @@
 'use client'
 
 import { useState } from 'react'
-import type { AnnouncementBannerProps } from '@/types'
+import { AnnouncementBannerProps } from '@/types'
 
 export default function AnnouncementBanner({ announcements }: AnnouncementBannerProps) {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [isVisible, setIsVisible] = useState(true)
+  const [dismissedAnnouncements, setDismissedAnnouncements] = useState<string[]>([])
 
-  if (!isVisible || !announcements || announcements.length === 0) {
+  if (!announcements || announcements.length === 0) {
     return null
   }
 
-  const currentAnnouncement = announcements[currentIndex]
-  
-  // Early return if currentAnnouncement is undefined (safety check)
-  if (!currentAnnouncement) {
+  const visibleAnnouncements = announcements.filter(
+    announcement => !dismissedAnnouncements.includes(announcement.id)
+  )
+
+  if (visibleAnnouncements.length === 0) {
     return null
   }
-  
-  const nextAnnouncement = () => {
-    setCurrentIndex((prev) => (prev + 1) % announcements.length)
+
+  const dismissAnnouncement = (announcementId: string) => {
+    setDismissedAnnouncements(prev => [...prev, announcementId])
   }
 
-  const getPriorityColor = (priority: 'low' | 'medium' | 'high') => {
-    switch (priority) {
-      case 'high':
-        return 'from-red-500 to-red-600'
-      case 'medium':
-        return 'from-yellow-500 to-orange-600'
+  const getAnnouncementColor = (type: string | undefined) => {
+    switch (type) {
+      case 'warning':
+        return 'bg-yellow-50 border-yellow-200 text-yellow-800'
+      case 'error':
+        return 'bg-red-50 border-red-200 text-red-800'
+      case 'success':
+        return 'bg-green-50 border-green-200 text-green-800'
       default:
-        return 'from-blue-500 to-purple-600'
+        return 'bg-blue-50 border-blue-200 text-blue-800'
+    }
+  }
+
+  const getIconColor = (type: string | undefined) => {
+    switch (type) {
+      case 'warning':
+        return 'text-yellow-400'
+      case 'error':
+        return 'text-red-400'
+      case 'success':
+        return 'text-green-400'
+      default:
+        return 'text-blue-400'
     }
   }
 
   return (
-    <div className={`announcement-banner bg-gradient-to-r ${getPriorityColor(currentAnnouncement.metadata?.priority || 'low')}`}>
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-3 flex-1">
-          <div className="flex items-center gap-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-            </svg>
-            <span className="font-medium text-sm uppercase tracking-wide">
-              {currentAnnouncement.metadata?.type || 'Announcement'}
-            </span>
+    <div className="space-y-2">
+      {visibleAnnouncements.map((announcement) => (
+        <div 
+          key={announcement.id}
+          className={`border rounded-lg p-4 ${getAnnouncementColor(announcement.metadata?.announcement_type)}`}
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex items-start">
+              <div className={`flex-shrink-0 ${getIconColor(announcement.metadata?.announcement_type)}`}>
+                {announcement.metadata?.announcement_type === 'warning' ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                ) : announcement.metadata?.announcement_type === 'error' ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                ) : announcement.metadata?.announcement_type === 'success' ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )}
+              </div>
+              
+              <div className="ml-3 flex-1">
+                <h3 className="text-sm font-medium">
+                  {announcement.title}
+                </h3>
+                {announcement.metadata?.message && (
+                  <p className="mt-1 text-sm opacity-90">
+                    {announcement.metadata.message}
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            <button
+              onClick={() => dismissAnnouncement(announcement.id)}
+              className="flex-shrink-0 ml-4 text-gray-400 hover:text-gray-600"
+              aria-label="Dismiss announcement"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-          <span className="text-sm sm:text-base">
-            {currentAnnouncement.metadata?.message || currentAnnouncement.title}
-          </span>
         </div>
-
-        <div className="flex items-center gap-2 ml-4">
-          {announcements.length > 1 && (
-            <>
-              <button
-                onClick={nextAnnouncement}
-                className="text-white hover:text-gray-200 transition-colors duration-200"
-                aria-label="Next announcement"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-              <span className="text-xs opacity-75">
-                {currentIndex + 1} / {announcements.length}
-              </span>
-            </>
-          )}
-          <button
-            onClick={() => setIsVisible(false)}
-            className="text-white hover:text-gray-200 transition-colors duration-200 ml-2"
-            aria-label="Dismiss announcement"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      </div>
+      ))}
     </div>
   )
 }

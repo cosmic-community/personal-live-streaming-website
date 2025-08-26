@@ -52,6 +52,10 @@ export interface Stream {
     tags?: string[]
     is_featured?: boolean
     recording_url?: string
+    thumbnail?: {
+      url: string
+      imgix_url: string
+    }
   }
 }
 
@@ -91,5 +95,5 @@ export interface StreamStatusProps {
 }
 
 export interface AnnouncementBannerProps {
-  announcement: StreamAnnouncement
+  announcements: StreamAnnouncement[]
 }

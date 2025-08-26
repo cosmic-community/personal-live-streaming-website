@@ -1,106 +1,112 @@
+import Link from 'next/link'
 import { getAllStreams } from '@/lib/cosmic'
-import { Stream } from '@/types'
+import type { Stream } from '@/types'
 
 export default async function ArchivePage() {
   const streams = await getAllStreams()
 
-  // Filter to show only archived or past streams
+  // Filter archived and offline streams
   const archivedStreams = streams.filter(stream => 
     stream.metadata?.status === 'archived' || 
-    stream.metadata?.status === 'offline'
+    (stream.metadata?.status === 'offline' && stream.metadata?.recording_url)
   )
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Stream Archive
-        </h1>
-        <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-          Catch up on past streams and highlights from our live broadcasts.
-        </p>
-      </div>
-
-      {archivedStreams.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="text-gray-400 mb-4">
-            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2h4a1 1 0 110 2h-1v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6H3a1 1 0 110-2h4zM6 6v12h12V6H6zm3 3a1 1 0 112 0v6a1 1 0 11-2 0V9zm4 0a1 1 0 112 0v6a1 1 0 11-2 0V9z"/>
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No archived streams yet</h3>
-          <p className="text-gray-500">Past streams will appear here once they're completed.</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
+            Stream Archive
+          </h1>
+          <p className="text-xl text-purple-200 max-w-3xl mx-auto">
+            Watch previous live streams and recordings
+          </p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {archivedStreams.map((stream) => (
-            <div key={stream.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-200">
-              {/* Thumbnail */}
-              <div className="aspect-video bg-gray-200 relative">
-                {stream.metadata?.thumbnail?.imgix_url ? (
-                  <img
-                    src={`${stream.metadata.thumbnail.imgix_url}?w=600&h=400&fit=crop&auto=format,compress`}
-                    alt={stream.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                    <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                )}
-                
-                {/* Status Badge */}
-                <div className="absolute top-3 left-3">
-                  <span className="px-3 py-1 bg-gray-900/80 text-white text-sm font-medium rounded-full">
-                    {stream.metadata?.status === 'archived' ? 'Archived' : 'Offline'}
-                  </span>
-                </div>
-              </div>
 
-              {/* Content */}
-              <div className="p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
-                  {stream.title}
-                </h3>
-                
-                {stream.metadata?.description && (
-                  <p className="text-gray-600 mb-4 line-clamp-3">
-                    {stream.metadata.description}
-                  </p>
-                )}
-
-                <div className="flex items-center justify-between text-sm text-gray-500">
-                  <div className="flex items-center">
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    {stream.metadata?.scheduled_date ? 
-                      new Date(stream.metadata.scheduled_date).toLocaleDateString() : 
-                      new Date(stream.created_at).toLocaleDateString()
-                    }
-                  </div>
-                  
-                  {stream.metadata?.recording_url && (
-                    <a
-                      href={stream.metadata.recording_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium"
-                    >
-                      Watch Recording
-                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                    </a>
-                  )}
-                </div>
-              </div>
+        {archivedStreams.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="text-gray-400 mb-4">
+              <svg className="w-16 h-16 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+              </svg>
             </div>
-          ))}
+            <h3 className="text-2xl font-semibold text-white mb-2">No Archived Streams</h3>
+            <p className="text-gray-400">Check back later for recorded streams!</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {archivedStreams.map((stream: Stream) => {
+              // Get thumbnail from metadata or fallback
+              const thumbnailUrl = stream.metadata?.thumbnail?.imgix_url || stream.thumbnail;
+              const optimizedThumbnail = thumbnailUrl ? `${thumbnailUrl}?w=600&h=400&fit=crop&auto=format,compress` : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&h=400&fit=crop&auto=format,compress';
+              
+              return (
+                <Link href={`/stream/${stream.slug}`} key={stream.id}>
+                  <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 overflow-hidden hover:scale-105 transition-all duration-300 group">
+                    <div className="aspect-video relative overflow-hidden">
+                      <img 
+                        src={optimizedThumbnail}
+                        alt={stream.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                      <div className="absolute bottom-4 left-4 right-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-3 h-3 rounded-full bg-gray-500"></div>
+                          <span className="text-white text-sm font-medium">ARCHIVED</span>
+                        </div>
+                      </div>
+                      <div className="absolute top-4 right-4">
+                        <div className="bg-black/50 backdrop-blur-sm rounded-full p-2">
+                          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="p-6">
+                      <h3 className="text-xl font-bold text-white mb-2 group-hover:text-purple-200 transition-colors">
+                        {stream.title}
+                      </h3>
+                      {stream.metadata?.description && (
+                        <p className="text-gray-300 mb-4 line-clamp-2">
+                          {stream.metadata.description}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between text-sm text-gray-400">
+                        <span>
+                          {stream.metadata?.scheduled_date 
+                            ? new Date(stream.metadata.scheduled_date).toLocaleDateString()
+                            : new Date(stream.created_at).toLocaleDateString()
+                          }
+                        </span>
+                        {stream.metadata?.category && (
+                          <span className="bg-purple-600/20 text-purple-200 px-3 py-1 rounded-full">
+                            {stream.metadata.category}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="text-center mt-12">
+          <Link 
+            href="/"
+            className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-8 py-4 rounded-full text-lg font-medium transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Live Stream
+          </Link>
         </div>
-      )}
+      </div>
     </div>
   )
 }

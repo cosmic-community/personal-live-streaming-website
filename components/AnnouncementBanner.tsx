@@ -13,6 +13,11 @@ export default function AnnouncementBanner({ announcements }: AnnouncementBanner
 
   const currentAnnouncement = announcements[currentIndex]
   
+  // Early return if currentAnnouncement is undefined (safety check)
+  if (!currentAnnouncement) {
+    return null
+  }
+  
   const nextAnnouncement = () => {
     setCurrentIndex((prev) => (prev + 1) % announcements.length)
   }

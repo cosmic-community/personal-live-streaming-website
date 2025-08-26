@@ -27,6 +27,9 @@ export interface Stream extends CosmicObject {
     is_featured?: boolean;
     category?: StreamCategory;
     tags?: string[];
+    // Mux integration fields
+    mux_stream_id?: string;
+    mux_asset_id?: string;
   };
 }
 
@@ -66,6 +69,35 @@ export interface SiteSettings extends CosmicObject {
   };
 }
 
+// Mux API interfaces
+export interface MuxStream {
+  id: string;
+  stream_key: string;
+  status: 'idle' | 'active' | 'disconnected';
+  playback_ids: Array<{
+    id: string;
+    policy: 'public' | 'signed';
+  }>;
+  recent_asset_ids: string[];
+  created_at: string;
+  max_continuous_duration?: number;
+}
+
+export interface MuxWebhookEvent {
+  type: string;
+  created_at: string;
+  data: {
+    id: string;
+    stream_key?: string;
+    status?: string;
+    playback_ids?: Array<{
+      id: string;
+      policy: string;
+    }>;
+    recent_asset_ids?: string[];
+  };
+}
+
 // Type literals for select-dropdown values
 export type StreamStatus = 'live' | 'scheduled' | 'offline' | 'archived';
 export type AnnouncementType = 'general' | 'schedule' | 'technical' | 'promotion';
@@ -79,15 +111,18 @@ export interface CosmicResponse<T> {
   skip: number;
 }
 
-// WebSocket types
-export interface StreamWebSocketData {
+// Stream status API response
+export interface StreamStatusResponse {
   status: StreamStatus;
   playbackId?: string;
   title?: string;
   description?: string;
   slug?: string;
   scheduledDate?: string;
-  viewerCount?: number;
+  isLive?: boolean;
+  muxStatus?: string;
+  muxStreamId?: string;
+  recentAssets?: string[];
 }
 
 // Type guards

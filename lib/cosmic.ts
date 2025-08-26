@@ -22,18 +22,64 @@ export async function getCurrentStream(): Promise<Stream | null> {
     }
 
     const response = await cosmic.objects.find({
-      type: 'streams',
-      'metadata.status': 'live'
+      type: 'streams'
     }).props(['id', 'title', 'slug', 'metadata']).depth(1);
 
     const streams = response.objects as Stream[];
+    
+    // Return the most recent stream (first in array)
     return streams.length > 0 ? (streams[0] ?? null) : null;
   } catch (error) {
     console.warn('Error fetching current stream:', error);
     if (hasStatus(error) && error.status === 404) {
       return null;
     }
-    // Return null instead of throwing to prevent build failures
+    return null;
+  }
+}
+
+// Find stream by playback ID (for webhook processing)
+export async function findStreamByPlaybackId(playbackId: string): Promise<Stream | null> {
+  try {
+    if (!process.env.COSMIC_BUCKET_SLUG || !process.env.COSMIC_READ_KEY) {
+      return null;
+    }
+
+    const response = await cosmic.objects.find({
+      type: 'streams',
+      'metadata.playback_id': playbackId
+    }).props(['id', 'title', 'slug', 'metadata']).depth(1);
+
+    const streams = response.objects as Stream[];
+    return streams.length > 0 ? streams[0] : null;
+  } catch (error) {
+    console.warn(`Error finding stream by playback ID ${playbackId}:`, error);
+    if (hasStatus(error) && error.status === 404) {
+      return null;
+    }
+    return null;
+  }
+}
+
+// Find stream by Mux stream ID
+export async function findStreamByMuxId(muxStreamId: string): Promise<Stream | null> {
+  try {
+    if (!process.env.COSMIC_BUCKET_SLUG || !process.env.COSMIC_READ_KEY) {
+      return null;
+    }
+
+    const response = await cosmic.objects.find({
+      type: 'streams',
+      'metadata.mux_stream_id': muxStreamId
+    }).props(['id', 'title', 'slug', 'metadata']).depth(1);
+
+    const streams = response.objects as Stream[];
+    return streams.length > 0 ? streams[0] : null;
+  } catch (error) {
+    console.warn(`Error finding stream by Mux ID ${muxStreamId}:`, error);
+    if (hasStatus(error) && error.status === 404) {
+      return null;
+    }
     return null;
   }
 }
@@ -143,7 +189,7 @@ export async function getSiteSettings(): Promise<SiteSettings | null> {
   }
 }
 
-// Update stream status (for admin functionality)
+// Update stream status (for webhook and admin functionality)
 export async function updateStreamStatus(streamId: string, status: 'live' | 'offline' | 'archived'): Promise<Stream | null> {
   try {
     if (!process.env.COSMIC_BUCKET_SLUG || !process.env.COSMIC_READ_KEY || !process.env.COSMIC_WRITE_KEY) {
@@ -160,6 +206,33 @@ export async function updateStreamStatus(streamId: string, status: 'live' | 'off
     return response.object as Stream;
   } catch (error) {
     console.error(`Failed to update stream status: ${error}`);
+    return null;
+  }
+}
+
+// Update stream with Mux information
+export async function updateStreamMuxInfo(
+  streamId: string, 
+  muxData: {
+    mux_stream_id: string;
+    stream_key: string;
+    playback_id: string;
+    status?: string;
+  }
+): Promise<Stream | null> {
+  try {
+    if (!process.env.COSMIC_BUCKET_SLUG || !process.env.COSMIC_READ_KEY || !process.env.COSMIC_WRITE_KEY) {
+      console.warn('Missing Cosmic environment variables for write operation');
+      return null;
+    }
+
+    const response = await cosmic.objects.updateOne(streamId, {
+      metadata: muxData
+    });
+
+    return response.object as Stream;
+  } catch (error) {
+    console.error(`Failed to update stream with Mux info: ${error}`);
     return null;
   }
 }

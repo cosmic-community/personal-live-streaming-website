@@ -21,7 +21,8 @@ export async function getCurrentStream(): Promise<Stream | null> {
     }).props(['id', 'title', 'slug', 'metadata']).depth(1);
 
     const streams = response.objects as Stream[];
-    return streams.length > 0 ? streams[0] : null;
+    // Fix: Properly handle undefined array access and convert to null
+    return streams.length > 0 ? (streams[0] ?? null) : null;
   } catch (error) {
     if (hasStatus(error) && error.status === 404) {
       return null;

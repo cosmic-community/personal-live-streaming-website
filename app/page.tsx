@@ -3,23 +3,33 @@ import StreamPlayer from '@/components/StreamPlayer'
 import StreamStatus from '@/components/StreamStatus'
 import AnnouncementBanner from '@/components/AnnouncementBanner'
 import StreamInfo from '@/components/StreamInfo'
+import type { Stream, StreamAnnouncement, SiteSettings } from '@/types'
 
 export default async function HomePage() {
-  // Add error boundaries for each API call
-  let currentStream = null;
-  let announcements: any[] = [];
-  let siteSettings = null;
+  // Add error boundaries for each API call with proper typing
+  let currentStream: Stream | null = null;
+  let announcements: StreamAnnouncement[] = [];
+  let siteSettings: SiteSettings | null = null;
 
   try {
-    [currentStream, announcements, siteSettings] = await Promise.allSettled([
+    const results = await Promise.allSettled([
       getCurrentStream(),
       getActiveAnnouncements(),
       getSiteSettings()
-    ]).then(results => [
-      results[0].status === 'fulfilled' ? results[0].value : null,
-      results[1].status === 'fulfilled' ? results[1].value : [],
-      results[2].status === 'fulfilled' ? results[2].value : null,
     ]);
+
+    // Type-safe result extraction with proper null checks
+    if (results[0].status === 'fulfilled' && results[0].value) {
+      currentStream = results[0].value;
+    }
+    
+    if (results[1].status === 'fulfilled' && Array.isArray(results[1].value)) {
+      announcements = results[1].value;
+    }
+    
+    if (results[2].status === 'fulfilled' && results[2].value) {
+      siteSettings = results[2].value;
+    }
   } catch (error) {
     console.error('Error fetching page data:', error);
     // Continue with null/empty fallbacks

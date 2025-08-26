@@ -79,6 +79,17 @@ export interface CosmicResponse<T> {
   skip: number;
 }
 
+// WebSocket types
+export interface StreamWebSocketData {
+  status: StreamStatus;
+  playbackId?: string;
+  title?: string;
+  description?: string;
+  slug?: string;
+  scheduledDate?: string;
+  viewerCount?: number;
+}
+
 // Type guards
 export function isStream(obj: CosmicObject): obj is Stream {
   return obj.type === 'streams';
@@ -108,4 +119,9 @@ export interface StreamStatusProps {
 
 export interface AnnouncementBannerProps {
   announcements: StreamAnnouncement[];
+}
+
+export interface RealTimeStreamPlayerProps {
+  initialStream: Stream | null;
+  fallbackPlaybackId?: string;
 }

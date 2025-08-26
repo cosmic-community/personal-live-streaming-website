@@ -1,8 +1,6 @@
 import { getCurrentStream, getActiveAnnouncements, getSiteSettings } from '@/lib/cosmic'
-import StreamPlayer from '@/components/StreamPlayer'
-import StreamStatus from '@/components/StreamStatus'
+import RealTimeStreamPlayer from '@/components/RealTimeStreamPlayer'
 import AnnouncementBanner from '@/components/AnnouncementBanner'
-import StreamInfo from '@/components/StreamInfo'
 import type { Stream, StreamAnnouncement, SiteSettings } from '@/types'
 
 export default async function HomePage() {
@@ -35,9 +33,6 @@ export default async function HomePage() {
     // Continue with null/empty fallbacks
   }
 
-  const isLive = currentStream?.metadata?.status === 'live'
-  const playbackId = currentStream?.metadata?.playback_id || 'NPQ01ZJs9TAkBnsxlfsF2CvNwHXTooFdcxrgGXFEi7cs'
-
   return (
     <div className="animate-fade-in">
       {/* Announcement Banner */}
@@ -55,44 +50,31 @@ export default async function HomePage() {
             <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-6">
               {siteSettings?.metadata?.site_description || 'Welcome to my personal live streaming platform. Join me for exciting content and interactive experiences.'}
             </p>
-            
-            {/* Stream Status */}
-            <div className="flex justify-center mb-8">
-              <StreamStatus 
-                status={currentStream?.metadata?.status || 'offline'}
-                scheduledDate={currentStream?.metadata?.scheduled_date}
-              />
-            </div>
           </div>
 
-          {/* Video Player */}
-          <div className="mb-12">
-            <StreamPlayer 
-              playbackId={playbackId}
-              isLive={isLive}
-              title={currentStream?.title}
-              description={currentStream?.metadata?.description}
-            />
-          </div>
+          {/* Real-time Stream Player */}
+          <RealTimeStreamPlayer 
+            initialStream={currentStream}
+            fallbackPlaybackId="NPQ01ZJs9TAkBnsxlfsF2CvNwHXTooFdcxrgGXFEi7cs"
+          />
 
-          {/* Stream Information */}
-          {currentStream && (
-            <StreamInfo stream={currentStream} />
-          )}
-
-          {/* Offline Message */}
+          {/* Offline Message Enhancement */}
           {!currentStream && (
-            <div className="text-center py-12">
+            <div className="text-center py-12 mt-8">
               <div className="max-w-md mx-auto">
                 <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 rounded-full flex items-center justify-center">
                   <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Active Stream</h3>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Real-Time Stream Monitor</h3>
                 <p className="text-gray-600">
-                  {siteSettings?.metadata?.offline_message || 'I\'m not streaming right now, but check back soon for exciting content!'}
+                  {siteSettings?.metadata?.offline_message || 'The page will automatically update when a stream goes live. No refresh needed!'}
                 </p>
+                <div className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-500">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span>Monitoring for live streams...</span>
+                </div>
               </div>
             </div>
           )}
@@ -100,4 +82,3 @@ export default async function HomePage() {
       </section>
     </div>
   )
-}

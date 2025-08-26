@@ -1,13 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: false,
-  },
-  eslint: {
-    ignoreDuringBuilds: false,
-  },
   images: {
-    domains: ['cdn.cosmicjs.com', 'imgix.cosmicjs.com'],
+    domains: [
+      'imgix.cosmicjs.com',
+      'cdn.cosmicjs.com',
+      'images.unsplash.com'
+    ],
+  },
+  env: {
+    NEXT_PUBLIC_SOCKET_URL: process.env.NEXT_PUBLIC_SOCKET_URL,
   },
 }
 

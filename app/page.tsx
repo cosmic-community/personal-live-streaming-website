@@ -5,11 +5,25 @@ import AnnouncementBanner from '@/components/AnnouncementBanner'
 import StreamInfo from '@/components/StreamInfo'
 
 export default async function HomePage() {
-  const [currentStream, announcements, siteSettings] = await Promise.all([
-    getCurrentStream(),
-    getActiveAnnouncements(),
-    getSiteSettings()
-  ])
+  // Add error boundaries for each API call
+  let currentStream = null;
+  let announcements: any[] = [];
+  let siteSettings = null;
+
+  try {
+    [currentStream, announcements, siteSettings] = await Promise.allSettled([
+      getCurrentStream(),
+      getActiveAnnouncements(),
+      getSiteSettings()
+    ]).then(results => [
+      results[0].status === 'fulfilled' ? results[0].value : null,
+      results[1].status === 'fulfilled' ? results[1].value : [],
+      results[2].status === 'fulfilled' ? results[2].value : null,
+    ]);
+  } catch (error) {
+    console.error('Error fetching page data:', error);
+    // Continue with null/empty fallbacks
+  }
 
   const isLive = currentStream?.metadata?.status === 'live'
   const playbackId = currentStream?.metadata?.playback_id || 'NPQ01ZJs9TAkBnsxlfsF2CvNwHXTooFdcxrgGXFEi7cs'

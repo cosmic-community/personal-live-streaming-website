@@ -15,25 +15,37 @@ function hasStatus(error: unknown): error is { status: number } {
 // Fetch current live stream
 export async function getCurrentStream(): Promise<Stream | null> {
   try {
+    // Check if we have the required environment variables
+    if (!process.env.COSMIC_BUCKET_SLUG || !process.env.COSMIC_READ_KEY) {
+      console.warn('Missing Cosmic environment variables, returning null for getCurrentStream');
+      return null;
+    }
+
     const response = await cosmic.objects.find({
       type: 'streams',
       'metadata.status': 'live'
     }).props(['id', 'title', 'slug', 'metadata']).depth(1);
 
     const streams = response.objects as Stream[];
-    // Fix: Properly handle undefined array access and convert to null
     return streams.length > 0 ? (streams[0] ?? null) : null;
   } catch (error) {
+    console.warn('Error fetching current stream:', error);
     if (hasStatus(error) && error.status === 404) {
       return null;
     }
-    throw new Error('Failed to fetch current stream');
+    // Return null instead of throwing to prevent build failures
+    return null;
   }
 }
 
 // Fetch all streams for archive
 export async function getAllStreams(): Promise<Stream[]> {
   try {
+    if (!process.env.COSMIC_BUCKET_SLUG || !process.env.COSMIC_READ_KEY) {
+      console.warn('Missing Cosmic environment variables, returning empty array for getAllStreams');
+      return [];
+    }
+
     const response = await cosmic.objects.find({
       type: 'streams'
     }).props(['id', 'title', 'slug', 'metadata']).depth(1);
@@ -45,34 +57,45 @@ export async function getAllStreams(): Promise<Stream[]> {
       return dateB - dateA; // Most recent first
     });
   } catch (error) {
+    console.warn('Error fetching all streams:', error);
     if (hasStatus(error) && error.status === 404) {
       return [];
     }
-    throw new Error('Failed to fetch streams');
+    return [];
   }
 }
 
 // Fetch stream by slug
 export async function getStreamBySlug(slug: string): Promise<Stream | null> {
   try {
+    if (!process.env.COSMIC_BUCKET_SLUG || !process.env.COSMIC_READ_KEY) {
+      console.warn('Missing Cosmic environment variables, returning null for getStreamBySlug');
+      return null;
+    }
+
     const response = await cosmic.objects.findOne({
       type: 'streams',
       slug
     }).depth(1);
 
-    // Fix: Properly handle undefined response.object and convert to null
     return response.object ? (response.object as Stream) : null;
   } catch (error) {
+    console.warn(`Error fetching stream with slug ${slug}:`, error);
     if (hasStatus(error) && error.status === 404) {
       return null;
     }
-    throw new Error(`Failed to fetch stream with slug: ${slug}`);
+    return null;
   }
 }
 
 // Fetch active announcements
 export async function getActiveAnnouncements(): Promise<StreamAnnouncement[]> {
   try {
+    if (!process.env.COSMIC_BUCKET_SLUG || !process.env.COSMIC_READ_KEY) {
+      console.warn('Missing Cosmic environment variables, returning empty array for getActiveAnnouncements');
+      return [];
+    }
+
     const response = await cosmic.objects.find({
       type: 'announcements',
       'metadata.is_active': true
@@ -89,34 +112,45 @@ export async function getActiveAnnouncements(): Promise<StreamAnnouncement[]> {
       return new Date(announcement.metadata.expiration_date) > now;
     });
   } catch (error) {
+    console.warn('Error fetching active announcements:', error);
     if (hasStatus(error) && error.status === 404) {
       return [];
     }
-    throw new Error('Failed to fetch announcements');
+    return [];
   }
 }
 
 // Fetch site settings
 export async function getSiteSettings(): Promise<SiteSettings | null> {
   try {
+    if (!process.env.COSMIC_BUCKET_SLUG || !process.env.COSMIC_READ_KEY) {
+      console.warn('Missing Cosmic environment variables, returning null for getSiteSettings');
+      return null;
+    }
+
     const response = await cosmic.objects.findOne({
       type: 'settings',
       slug: 'site-settings'
     }).depth(1);
 
-    // Fix: Properly handle undefined response.object and convert to null
     return response.object ? (response.object as SiteSettings) : null;
   } catch (error) {
+    console.warn('Error fetching site settings:', error);
     if (hasStatus(error) && error.status === 404) {
       return null;
     }
-    throw new Error('Failed to fetch site settings');
+    return null;
   }
 }
 
 // Update stream status (for admin functionality)
-export async function updateStreamStatus(streamId: string, status: 'live' | 'offline' | 'archived'): Promise<Stream> {
+export async function updateStreamStatus(streamId: string, status: 'live' | 'offline' | 'archived'): Promise<Stream | null> {
   try {
+    if (!process.env.COSMIC_BUCKET_SLUG || !process.env.COSMIC_READ_KEY || !process.env.COSMIC_WRITE_KEY) {
+      console.warn('Missing Cosmic environment variables for write operation');
+      return null;
+    }
+
     const response = await cosmic.objects.updateOne(streamId, {
       metadata: {
         status: status
@@ -125,6 +159,7 @@ export async function updateStreamStatus(streamId: string, status: 'live' | 'off
 
     return response.object as Stream;
   } catch (error) {
-    throw new Error(`Failed to update stream status: ${error}`);
+    console.error(`Failed to update stream status: ${error}`);
+    return null;
   }
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { updateStreamStatus } from '@/lib/cosmic'
+import { findStreamByMuxId, updateStreamStatus, findStreamByPlaybackId } from '@/lib/cosmic'
 
 const WEBHOOK_SECRET = process.env.MUX_WEBHOOK_SECRET
 
@@ -13,9 +13,11 @@ export async function POST(request: NextRequest) {
     if (WEBHOOK_SECRET && signature) {
       // In production, verify the webhook signature here
       // This is important for security
+      console.log('Webhook signature verification would happen here')
     }
 
     const data = JSON.parse(body)
+    console.log('Received webhook:', data.type, data.data?.id)
     
     // Handle different webhook events
     switch (data.type) {
@@ -34,13 +36,24 @@ export async function POST(request: NextRequest) {
         await handleStreamCreated(data.data)
         break
         
+      case 'video.live_stream.disconnected':
+        // Stream disconnected
+        await handleStreamDisconnected(data.data)
+        break
+        
       case 'video.asset.created':
         // Recording created from live stream
         await handleAssetCreated(data.data)
         break
+
+      default:
+        console.log(`Unhandled webhook event: ${data.type}`)
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ 
+      success: true, 
+      message: `Processed ${data.type} event` 
+    })
 
   } catch (error) {
     console.error('Webhook error:', error)
@@ -52,40 +65,95 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleStreamActive(streamData: any) {
-  console.log('Stream went live:', streamData.id)
+  console.log('🔴 Stream went live:', streamData.id)
   
-  // Find the stream in Cosmic by playback_id and update status
   try {
-    const playbackId = streamData.playback_ids[0]?.id
-    if (playbackId) {
-      // You'll need to implement findStreamByPlaybackId in cosmic.ts
-      // Then update the stream status to 'live'
-      console.log('Stream is now live with playback ID:', playbackId)
+    // Find the stream in Cosmic by Mux stream ID
+    const cosmicStream = await findStreamByMuxId(streamData.id)
+    
+    if (cosmicStream) {
+      console.log('Updating Cosmic stream to live status:', cosmicStream.id)
+      await updateStreamStatus(cosmicStream.id, 'live')
+    } else {
+      console.log('No matching Cosmic stream found for Mux ID:', streamData.id)
+      // Optionally create a new stream record in Cosmic here
     }
+
+    // Also try finding by playback ID as fallback
+    const playbackId = streamData.playback_ids?.[0]?.id
+    if (playbackId && !cosmicStream) {
+      console.log('Trying to find stream by playback ID:', playbackId)
+      const streamByPlaybackId = await findStreamByPlaybackId(playbackId)
+      if (streamByPlaybackId) {
+        await updateStreamStatus(streamByPlaybackId.id, 'live')
+      }
+    }
+    
   } catch (error) {
     console.error('Error updating stream to live:', error)
   }
 }
 
 async function handleStreamIdle(streamData: any) {
-  console.log('Stream went offline:', streamData.id)
+  console.log('⚪ Stream went idle/offline:', streamData.id)
   
-  // Update stream status to offline in Cosmic
   try {
-    const playbackId = streamData.playback_ids[0]?.id
-    if (playbackId) {
-      console.log('Stream went offline with playback ID:', playbackId)
+    const cosmicStream = await findStreamByMuxId(streamData.id)
+    
+    if (cosmicStream) {
+      console.log('Updating Cosmic stream to offline status:', cosmicStream.id)
+      await updateStreamStatus(cosmicStream.id, 'offline')
+    } else {
+      // Try finding by playback ID
+      const playbackId = streamData.playback_ids?.[0]?.id
+      if (playbackId) {
+        const streamByPlaybackId = await findStreamByPlaybackId(playbackId)
+        if (streamByPlaybackId) {
+          await updateStreamStatus(streamByPlaybackId.id, 'offline')
+        }
+      }
     }
+    
   } catch (error) {
     console.error('Error updating stream to offline:', error)
   }
 }
 
+async function handleStreamDisconnected(streamData: any) {
+  console.log('🔌 Stream disconnected:', streamData.id)
+  
+  try {
+    const cosmicStream = await findStreamByMuxId(streamData.id)
+    
+    if (cosmicStream) {
+      await updateStreamStatus(cosmicStream.id, 'offline')
+    }
+    
+  } catch (error) {
+    console.error('Error handling stream disconnect:', error)
+  }
+}
+
 async function handleStreamCreated(streamData: any) {
-  console.log('New stream created:', streamData.id)
+  console.log('➕ New stream created:', streamData.id)
+  
+  // You could automatically create a corresponding stream record in Cosmic here
+  // For now, just log the event
+  console.log('Stream details:', {
+    id: streamData.id,
+    streamKey: streamData.stream_key,
+    playbackId: streamData.playback_ids?.[0]?.id,
+    status: streamData.status
+  })
 }
 
 async function handleAssetCreated(assetData: any) {
-  console.log('Recording created:', assetData.id)
+  console.log('📹 Recording created:', assetData.id)
+  
   // Handle recording of live stream
+  // You could update the corresponding stream in Cosmic to link to the recording
+  if (assetData.live_stream_id) {
+    console.log('Recording created for live stream:', assetData.live_stream_id)
+    // Optionally update the Cosmic stream record with the recording information
+  }
 }

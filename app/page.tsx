@@ -1,84 +1,125 @@
-import { getCurrentStream, getActiveAnnouncements, getSiteSettings } from '@/lib/cosmic'
-import RealTimeStreamPlayer from '@/components/RealTimeStreamPlayer'
+import { Suspense } from 'react'
+import { getSiteSettings, getActiveAnnouncements } from '@/lib/cosmic'
+import EnhancedStreamPlayer from '@/components/EnhancedStreamPlayer'
 import AnnouncementBanner from '@/components/AnnouncementBanner'
-import type { Stream, StreamAnnouncement, SiteSettings } from '@/types'
+import Header from '@/components/Header'
+import CosmicBadge from '@/components/CosmicBadge'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+function StreamPlayerSkeleton() {
+  return (
+    <div className="w-full max-w-4xl mx-auto">
+      <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border animate-pulse">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-6 bg-gray-200 rounded w-48 mb-2"></div>
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-gray-200 rounded-full"></div>
+                <div className="h-4 bg-gray-200 rounded w-16"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="aspect-video bg-gray-200 rounded-lg animate-pulse"></div>
+    </div>
+  )
+}
 
 export default async function HomePage() {
-  // Add error boundaries for each API call with proper typing
-  let currentStream: Stream | null = null;
-  let announcements: StreamAnnouncement[] = [];
-  let siteSettings: SiteSettings | null = null;
+  // Fetch data in parallel
+  const [siteSettings, announcements] = await Promise.allSettled([
+    getSiteSettings(),
+    getActiveAnnouncements()
+  ])
 
-  try {
-    const results = await Promise.allSettled([
-      getCurrentStream(),
-      getActiveAnnouncements(),
-      getSiteSettings()
-    ]);
+  // Extract results with fallbacks
+  const settings = siteSettings.status === 'fulfilled' ? siteSettings.value : null
+  const activeAnnouncements = announcements.status === 'fulfilled' ? announcements.value : []
 
-    // Type-safe result extraction with proper null checks
-    if (results[0].status === 'fulfilled' && results[0].value) {
-      currentStream = results[0].value;
-    }
-    
-    if (results[1].status === 'fulfilled' && Array.isArray(results[1].value)) {
-      announcements = results[1].value;
-    }
-    
-    if (results[2].status === 'fulfilled' && results[2].value) {
-      siteSettings = results[2].value;
-    }
-  } catch (error) {
-    console.error('Error fetching page data:', error);
-    // Continue with null/empty fallbacks
-  }
+  // Get bucket slug for CosmicBadge
+  const bucketSlug = process.env.COSMIC_BUCKET_SLUG as string
 
   return (
-    <div className="animate-fade-in">
-      {/* Announcement Banner */}
-      {announcements && announcements.length > 0 && (
-        <AnnouncementBanner announcements={announcements} />
+    <>
+      <Header siteSettings={settings} />
+      
+      {/* Active Announcements */}
+      {activeAnnouncements && activeAnnouncements.length > 0 && (
+        <div className="border-b border-gray-200">
+          {activeAnnouncements.map((announcement) => (
+            <AnnouncementBanner
+              key={announcement.id}
+              announcement={announcement}
+            />
+          ))}
+        </div>
       )}
 
       {/* Hero Section */}
-      <section className="pt-8 pb-12">
-        <div className="stream-container">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-4">
-              {siteSettings?.metadata?.site_title || 'Live Streaming'}
+      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
+        <div className="container mx-auto px-4 py-12">
+          {/* Hero Content */}
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+              {settings?.metadata?.site_name || 'Live Stream'}
             </h1>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-6">
-              {siteSettings?.metadata?.site_description || 'Welcome to my personal live streaming platform. Join me for exciting content and interactive experiences.'}
+            <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              {settings?.metadata?.tagline || 
+               'Welcome to my personal live streaming platform. Join me for live broadcasts, tutorials, and interactive sessions.'}
             </p>
           </div>
 
-          {/* Real-time Stream Player */}
-          <RealTimeStreamPlayer 
-            initialStream={currentStream}
-            fallbackPlaybackId="NPQ01ZJs9TAkBnsxlfsF2CvNwHXTooFdcxrgGXFEi7cs"
-          />
+          {/* Stream Player */}
+          <div className="mb-16">
+            <Suspense fallback={<StreamPlayerSkeleton />}>
+              <EnhancedStreamPlayer />
+            </Suspense>
+          </div>
 
-          {/* Offline Message Enhancement */}
-          {!currentStream && (
-            <div className="text-center py-12 mt-8">
-              <div className="max-w-md mx-auto">
-                <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 rounded-full flex items-center justify-center">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Real-Time Stream Monitor</h3>
+          {/* Additional Info */}
+          <div className="max-w-4xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="bg-white p-6 rounded-lg shadow-sm border">
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                  📺 Live Streaming
+                </h3>
                 <p className="text-gray-600">
-                  {siteSettings?.metadata?.offline_message || 'The page will automatically update when a stream goes live. No refresh needed!'}
+                  Join me for live broadcasts where I share insights, tutorials, and answer your questions in real-time. 
+                  The stream indicator above will show when I'm live.
                 </p>
-                <div className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-500">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span>Monitoring for live streams...</span>
-                </div>
+              </div>
+              
+              <div className="bg-white p-6 rounded-lg shadow-sm border">
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                  🎯 Interactive Sessions
+                </h3>
+                <p className="text-gray-600">
+                  Each stream is interactive - feel free to ask questions, request topics, or just say hello. 
+                  Your engagement makes the streams better for everyone.
+                </p>
               </div>
             </div>
-          )}
+            
+            {settings?.metadata?.description && (
+              <div className="mt-8 bg-white p-6 rounded-lg shadow-sm border">
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                  About This Stream
+                </h3>
+                <p className="text-gray-600 leading-relaxed">
+                  {settings.metadata.description}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
-      </section>
-    </div>
+      </main>
+
+      {/* Cosmic Badge */}
+      <CosmicBadge bucketSlug={bucketSlug} />
+    </>
   )
+}

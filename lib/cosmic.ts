@@ -27,7 +27,13 @@ export async function getCurrentStream(): Promise<Stream | null> {
 
     const streams = response.objects as Stream[];
     
-    // Return the most recent stream (first in array)
+    // Return the most recent live stream first, then any stream
+    const liveStream = streams.find(stream => stream.metadata?.status === 'live');
+    if (liveStream) {
+      return liveStream;
+    }
+    
+    // Return the most recent stream if no live stream
     return streams.length > 0 ? (streams[0] ?? null) : null;
   } catch (error) {
     console.warn('Error fetching current stream:', error);
@@ -81,6 +87,33 @@ export async function findStreamByMuxId(muxStreamId: string): Promise<Stream | n
       return null;
     }
     return null;
+  }
+}
+
+// Get all active live streams
+export async function getActiveLiveStreams(): Promise<Stream[]> {
+  try {
+    if (!process.env.COSMIC_BUCKET_SLUG || !process.env.COSMIC_READ_KEY) {
+      return [];
+    }
+
+    const response = await cosmic.objects.find({
+      type: 'streams',
+      'metadata.status': 'live'
+    }).props(['id', 'title', 'slug', 'metadata']).depth(1);
+
+    const streams = response.objects as Stream[];
+    return streams.sort((a, b) => {
+      const dateA = new Date(a.metadata?.scheduled_date || a.created_at).getTime();
+      const dateB = new Date(b.metadata?.scheduled_date || b.created_at).getTime();
+      return dateB - dateA; // Most recent first
+    });
+  } catch (error) {
+    console.warn('Error fetching active live streams:', error);
+    if (hasStatus(error) && error.status === 404) {
+      return [];
+    }
+    return [];
   }
 }
 
@@ -189,7 +222,7 @@ export async function getSiteSettings(): Promise<SiteSettings | null> {
   }
 }
 
-// Update stream status (for webhook and admin functionality)
+// Update stream status (for webhook and admin functionality) - CRITICAL: MINIMAL METADATA UPDATE
 export async function updateStreamStatus(streamId: string, status: 'live' | 'offline' | 'archived'): Promise<Stream | null> {
   try {
     if (!process.env.COSMIC_BUCKET_SLUG || !process.env.COSMIC_READ_KEY || !process.env.COSMIC_WRITE_KEY) {
@@ -197,12 +230,14 @@ export async function updateStreamStatus(streamId: string, status: 'live' | 'off
       return null;
     }
 
+    // CRITICAL: Only update the status field, not the entire metadata object
     const response = await cosmic.objects.updateOne(streamId, {
       metadata: {
         status: status
       }
     });
 
+    console.log(`Successfully updated stream ${streamId} status to ${status}`);
     return response.object as Stream;
   } catch (error) {
     console.error(`Failed to update stream status: ${error}`);
@@ -210,7 +245,7 @@ export async function updateStreamStatus(streamId: string, status: 'live' | 'off
   }
 }
 
-// Update stream with Mux information
+// Update stream with Mux information - CRITICAL: MINIMAL METADATA UPDATE
 export async function updateStreamMuxInfo(
   streamId: string, 
   muxData: {
@@ -226,13 +261,50 @@ export async function updateStreamMuxInfo(
       return null;
     }
 
+    // CRITICAL: Only update the specific Mux fields, not the entire metadata object
     const response = await cosmic.objects.updateOne(streamId, {
       metadata: muxData
     });
 
+    console.log(`Successfully updated stream ${streamId} with Mux info`);
     return response.object as Stream;
   } catch (error) {
     console.error(`Failed to update stream with Mux info: ${error}`);
+    return null;
+  }
+}
+
+// Create a new stream with Mux information
+export async function createStreamWithMuxInfo(
+  title: string,
+  muxData: {
+    mux_stream_id: string;
+    stream_key: string;
+    playback_id: string;
+    status?: string;
+  }
+): Promise<Stream | null> {
+  try {
+    if (!process.env.COSMIC_BUCKET_SLUG || !process.env.COSMIC_READ_KEY || !process.env.COSMIC_WRITE_KEY) {
+      console.warn('Missing Cosmic environment variables for write operation');
+      return null;
+    }
+
+    const response = await cosmic.objects.insertOne({
+      title,
+      type: 'streams',
+      status: 'published',
+      metadata: {
+        ...muxData,
+        status: muxData.status || 'offline',
+        scheduled_date: new Date().toISOString()
+      }
+    });
+
+    console.log(`Successfully created new stream with Mux info:`, response.object.id);
+    return response.object as Stream;
+  } catch (error) {
+    console.error(`Failed to create stream with Mux info: ${error}`);
     return null;
   }
 }

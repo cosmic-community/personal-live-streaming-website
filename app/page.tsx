@@ -22,7 +22,7 @@ export default async function Home() {
           {announcements.map(announcement => (
             <AnnouncementBanner 
               key={announcement.id} 
-              announcement={announcement} 
+              announcements={[announcement]} 
             />
           ))}
         </div>

@@ -59,7 +59,8 @@ export async function getStreamBySlug(slug: string): Promise<Stream | null> {
       slug
     }).depth(1);
 
-    // Fix: Handle undefined case properly - response.object can be undefined
+    // Fix: Properly handle the case where response.object is undefined
+    // The Cosmic SDK's findOne method returns { object: T | undefined }
     return response.object ? (response.object as Stream) : null;
   } catch (error) {
     if (hasStatus(error) && error.status === 404) {
@@ -103,7 +104,8 @@ export async function getSiteSettings(): Promise<SiteSettings | null> {
       slug: 'site-settings'
     }).depth(1);
 
-    // Fix: Handle undefined case properly - response.object can be undefined
+    // Fix: Properly handle the case where response.object is undefined
+    // The Cosmic SDK's findOne method returns { object: T | undefined }
     return response.object ? (response.object as SiteSettings) : null;
   } catch (error) {
     if (hasStatus(error) && error.status === 404) {

@@ -59,7 +59,8 @@ export async function getStreamBySlug(slug: string): Promise<Stream | null> {
       slug
     }).depth(1);
 
-    // Properly handle the case where object might be undefined
+    // Fix: Properly handle the case where object might be undefined
+    // Convert undefined to null to match function return type
     return response.object ? (response.object as Stream) : null;
   } catch (error) {
     if (hasStatus(error) && error.status === 404) {
@@ -103,7 +104,8 @@ export async function getSiteSettings(): Promise<SiteSettings | null> {
       slug: 'site-settings'
     }).depth(1);
 
-    // Properly handle the case where object might be undefined
+    // Fix: Properly handle the case where object might be undefined
+    // Convert undefined to null to match function return type
     return response.object ? (response.object as SiteSettings) : null;
   } catch (error) {
     if (hasStatus(error) && error.status === 404) {

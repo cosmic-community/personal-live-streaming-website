@@ -7,6 +7,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        border: '#e5e7eb', // Adding the missing border color
         'mux-primary': '#29abe2',
         'mux-secondary': '#f7fbfc',
         'stream-live': '#ef4444',

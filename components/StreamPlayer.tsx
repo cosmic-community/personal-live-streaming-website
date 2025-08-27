@@ -58,33 +58,6 @@ export default function StreamPlayer({
               </div>
             </div>
           )}
-
-          {/* Stream Controls Overlay */}
-          <div className="absolute bottom-4 left-4 right-4 z-10">
-            <div className="bg-black/50 backdrop-blur-md rounded-lg p-3">
-              <div className="flex items-center justify-between text-white text-sm">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${
-                      actualIsLive ? 'bg-red-500 animate-pulse' : 'bg-gray-500'
-                    }`}></div>
-                    <span className="font-medium">
-                      {actualIsLive ? 'LIVE' : 'OFFLINE'}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="text-right">
-                  <div className="font-medium">{actualTitle}</div>
-                  {actualDescription && (
-                    <div className="text-gray-300 text-xs mt-1 max-w-xs truncate">
-                      {actualDescription}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Stream Info Bar */}

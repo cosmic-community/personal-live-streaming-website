@@ -28,10 +28,10 @@ export default function StreamPlayer({
         <div className="relative aspect-video">
           {actualPlaybackId ? (
             <iframe
-              src={`https://stream.mux.com/${actualPlaybackId}.html?autoplay=muted&preload=auto`}
+              src="https://player.mux.com/NPQ01ZJs9TAkBnsxlfsF2CvNwHXTooFdcxrgGXFEi7cs?primary-color=%2329abe2&secondary-color=%23f7fbfc"
+              style={{ width: '100%', border: 'none' }}
               className="absolute inset-0 w-full h-full"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
               allowFullScreen
               title={actualTitle}
             />
